@@ -196,6 +196,15 @@
     <p>All data stays in your browser. Nothing is sent anywhere.</p>
   </footer>
 
+  <div class="data-io-fab" id="data-io-fab">
+    <div class="fab-menu">
+      <button id="export-data-btn">Export JSON</button>
+      <button id="import-data-btn">Import JSON</button>
+    </div>
+    <button class="fab-toggle" id="fab-toggle" title="Import / Export Data">⇅</button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none">
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
