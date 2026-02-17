@@ -514,11 +514,25 @@ function parseDmls(raw) {
         <td><span class="tag ${tc}">${e.type}</span></td>
         <td>${e.hours.toFixed(2)}</td>
         <td><span class="tag ${e.status === 'Approved' ? 'tag-approved' : 'tag-planned'}">${e.status}</span></td>
-        <td>${e.status === 'Planned' ? `<button class="btn-danger" data-id="${e.id}">DEL</button>` : ''}</td>`;
+        <td>
+          <select class="edit-type" data-id="${e.id}">
+            ${(S.system === 'A' ? ['VAC','HPT','SICK'] : ['PTO']).map(t =>
+              `<option value="${t}" ${e.type === t ? 'selected' : ''}>${t}</option>`
+            ).join('')}
+          </select>
+          ${e.status === 'Planned' ? `<button class="btn-danger" data-id="${e.id}">DEL</button>` : ''}
+        </td>`;
       tb.appendChild(tr);
     }
 
     $('#table-summary').textContent = `${cnt} entries — ${totH.toFixed(1)} hrs (${(totH / 8).toFixed(1)} days)`;
+
+   tb.querySelectorAll('.edit-type').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const entry = S.entries.find(e => e.id === sel.dataset.id);
+        if (entry) { entry.type = sel.value; renderCal(); recalc(); save(); }
+      });
+    });
 
     tb.querySelectorAll('.btn-danger').forEach(b => {
       b.addEventListener('click', () => {
@@ -526,7 +540,6 @@ function parseDmls(raw) {
         renderTable(); renderCal(); recalc(); save();
       });
     });
-  }
 
   /* ── UI: METERS ──────────────────────────────────────────── */
 
