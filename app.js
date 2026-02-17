@@ -130,36 +130,60 @@
   }
 
   /* ── DMLS01 PARSER ───────────────────────────────────────── */
-
-  function parseDmls(raw) {
+function parseDmls(raw) {
     const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
     const out = [];
     const unk = new Set();
-    let inBlock = false, skipHdr = false;
+    const known = ['VAC','HPT','PTO','SICK','OV'];
 
     for (const ln of lines) {
-      if (/^Request ID\s+\d+$/i.test(ln)) { inBlock = true; skipHdr = true; continue; }
-      if (skipHdr) {
-        skipHdr = false;
-        if (/Leave Type/i.test(ln) && /Day ID/i.test(ln)) continue;
-      }
-      if (!inBlock) continue;
+      // Skip header lines and Request ID lines
+      if (/^Request ID/i.test(ln)) continue;
+      if (/Leave Type/i.test(ln) && /Day ID/i.test(ln)) continue;
+      if (/Sort ascending/i.test(ln)) continue;
 
+      // Skip denied rows early
+      if (/\bDenied\b/i.test(ln)) continue;
+
+      // Split on tabs, but also handle spaces that replaced tabs
       const p = ln.split(/\t+/);
-      if (p.length < 7) continue;
 
-      const leaveRaw = p[1].trim().toUpperCase();
-      const todRaw = p[3].trim();
-      const status = p[5].trim();
-      const hrs = parseFloat(p[6]) || 0;
+      // Pattern-based extraction instead of positional
+      // Find leave type: known code as a standalone field
+      let leaveRaw = null;
+      for (const f of p) {
+        const ft = f.trim().toUpperCase();
+        if (known.includes(ft)) { leaveRaw = ft; break; }
+      }
+      if (!leaveRaw) continue;
 
-      if (status.toLowerCase() === 'denied' || hrs === 0) continue;
-
-      const dm = todRaw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      if (!dm) continue;
+      // Find date: MM/DD/YYYY pattern anywhere in the line
+      const dateMatches = ln.match(/(\d{2})\/(\d{2})\/(\d{4})/g);
+      if (!dateMatches || dateMatches.length === 0) continue;
+      // First date match is the time-off date, second (if present) is requested date
+      const dm = dateMatches[0].match(/(\d{2})\/(\d{2})\/(\d{4})/);
       const date = new Date(+dm[3], +dm[1] - 1, +dm[2]);
 
-      const known = ['VAC','HPT','PTO','SICK','OV'];
+      // Find hours: decimal number (look for X.XX pattern)
+      let hrs = 0;
+      const hrsMatch = ln.match(/\b(\d+\.\d{2})\b/g);
+      if (hrsMatch) {
+        // Take the last decimal match — hours field comes after dates
+        for (const h of hrsMatch) {
+          const v = parseFloat(h);
+          // Filter out things that look like dates parsed as decimals
+          if (v > 0 && v <= 24) { hrs = v; break; }
+        }
+      }
+      if (hrs === 0) continue;
+
+      // Check for denied status (redundant safety check)
+      let status = 'Approved';
+      for (const f of p) {
+        if (f.trim().toLowerCase() === 'denied') { status = 'Denied'; break; }
+      }
+      if (status === 'Denied') continue;
+
       let type = leaveRaw;
       if (leaveRaw === 'OV') type = 'VAC';
       if (!known.includes(leaveRaw)) unk.add(leaveRaw);
@@ -292,7 +316,7 @@
     // Ideal usage
     let ideal = annAcc;
     if (bank === 'HPT') ideal = annAcc + HPT_HOLIDAY_HRS;
-    if (curBal > cap * 0.8) ideal += (curBal - cap * 0.8);
+    if (curBal > cap * 0.6) ideal += (curBal - cap * 0.6);
 
     const ratio = ideal > 0 ? actual / ideal : 0;
     const dRatio = clamp(ratio, 0, 2.5);
