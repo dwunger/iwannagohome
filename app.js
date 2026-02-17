@@ -534,12 +534,13 @@ function parseDmls(raw) {
       });
     });
 
-    tb.querySelectorAll('.btn-danger').forEach(b => {
+   tb.querySelectorAll('.btn-danger').forEach(b => {
       b.addEventListener('click', () => {
         S.entries = S.entries.filter(e => e.id !== b.dataset.id);
         renderTable(); renderCal(); recalc(); save();
       });
     });
+  }
 
   /* ── UI: METERS ──────────────────────────────────────────── */
 
