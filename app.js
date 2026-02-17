@@ -322,7 +322,7 @@ function parseDmls(raw) {
     const dRatio = clamp(ratio, 0, 2.5);
     const msg = meterMsg(bank, ratio, curBal, cap, annAcc, actual, snaps);
 
-    return { bank, curBal, cap, annAcc, ideal, actual, ratio, dRatio, msg };
+    return { bank, curBal, cap, annAcc, ideal, actual, ratio, dRatio, msg, snaps };
   }
 
   function sickMeter(bal, annAcc, usage) {
@@ -467,6 +467,7 @@ function parseDmls(raw) {
     if (!S.selDate || !S.system) return;
     $('#add-planned').classList.remove('hidden');
     $('#planned-date-label').textContent = fmtDate(S.selDate);
+    $('#plan-error').classList.add('hidden');
     updLeaveOpts();
   }
 
@@ -477,12 +478,51 @@ function parseDmls(raw) {
     opts.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
   }
 
+  function canPlan(bank, date, hours) {
+    if (!S.hireDate || !S.balDate) return { ok: true };
+    if (date < S.balDate) return { ok: true };
+
+    const sb = S.bal[bank] || 0;
+    const snaps = project(bank, sb, S.balDate, date);
+
+    const k = ds(date);
+    let projBal = sb;
+    for (const s of snaps) {
+      if (ds(s.date) === k) { projBal = s.bal; break; }
+      if (s.date > date) break;
+      projBal = s.bal;
+    }
+
+    if (projBal < hours) {
+      return {
+        ok: false,
+        projBal,
+        deficit: hours - projBal,
+        msg: `Insufficient ${bank} balance on ${fmtDate(date)}. Projected: ${projBal.toFixed(1)} hrs, Requested: ${hours} hrs. Short by ${(hours - projBal).toFixed(1)} hrs.`
+      };
+    }
+    return { ok: true, projBal };
+  }
+
   function addPlanned() {
     if (!S.selDate || !S.system) return;
+    const type = $('#planned-type').value;
+    const hours = parseFloat($('#planned-hours').value) || 8;
+    const bank = type === 'OV' ? 'VAC' : type;
+
+    const errEl = $('#plan-error');
+    const check = canPlan(bank, new Date(S.selDate), hours);
+    if (!check.ok) {
+      errEl.textContent = check.msg;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    errEl.classList.add('hidden');
+
     S.entries.push({
       date: new Date(S.selDate),
-      type: $('#planned-type').value,
-      hours: parseFloat($('#planned-hours').value) || 8,
+      type,
+      hours,
       status: 'Planned',
       id: uid(),
     });
@@ -555,17 +595,26 @@ function parseDmls(raw) {
     }
 
     const banks = S.system === 'A' ? ['HPT','VAC','SICK'] : ['PTO'];
+    const meterData = {};
 
     for (const b of banks) {
       const d = calcMeter(b);
       if (!d) continue;
+      meterData[b] = d;
       const card = document.createElement('div');
       card.className = 'meter-card';
       card.innerHTML = d.isSick ? sickMeterHTML(d) : stdMeterHTML(d);
       c.appendChild(card);
     }
 
-    requestAnimationFrame(drawCanvases);
+    requestAnimationFrame(() => {
+      drawCanvases();
+      $$('.proj-canvas').forEach(cv => {
+        const d = meterData[cv.dataset.bank];
+        if (d && d.snaps) drawProjection(cv, d.snaps, d.cap);
+      });
+      initProjTooltips();
+    });
 
     if (S.system === 'A') renderSickWidget(); else $('#sick-widget').classList.add('hidden');
   }
@@ -574,7 +623,7 @@ function parseDmls(raw) {
     const pos = clamp(d.dRatio / 2.5, 0, 1) * 100;
     const col = meterColor(d.dRatio / 2.5);
     const names = { HPT: 'HPT (Holiday / Personal)', VAC: 'Vacation', PTO: 'PTO' };
-    return `
+    let html = `
       <div class="meter-top">
         <span class="meter-name">${names[d.bank] || d.bank}</span>
         <span class="meter-bal">${d.curBal.toFixed(1)} / ${d.cap} hrs</span>
@@ -586,6 +635,18 @@ function parseDmls(raw) {
         <div class="meter-needle" style="left:${pos}%"></div>
       </div>
       <div class="meter-msg" style="border-left-color:${col}">${d.msg}</div>`;
+
+    if (d.snaps && d.snaps.length > 0) {
+      html += `
+      <div class="proj-chart-wrap">
+        <span class="proj-chart-label">12-Month Projection</span>
+        <div class="proj-chart-container">
+          <canvas class="proj-canvas" data-bank="${d.bank}"></canvas>
+          <div class="proj-tooltip hidden" id="proj-tip-${d.bank}"></div>
+        </div>
+      </div>`;
+    }
+    return html;
   }
 
   function sickMeterHTML(d) {
@@ -641,6 +702,153 @@ function parseDmls(raw) {
       ctx.arcTo(0, 0, r, 0, r);
       ctx.closePath();
       ctx.fill();
+    });
+  }
+
+  /* ── PROJECTION SPARKLINE ────────────────────────────────── */
+
+  function drawProjection(canvas, snaps, cap) {
+    if (!snaps || snaps.length === 0) return;
+
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const W = rect.width;
+    const H = rect.height;
+    const padTop = 12, padBot = 16, padL = 0, padR = 0;
+    const chartW = W - padL - padR;
+    const chartH = H - padTop - padBot;
+
+    let maxBal = cap;
+    for (const s of snaps) if (s.bal > maxBal) maxBal = s.bal;
+    const yMax = maxBal * 1.1;
+
+    const xOf = (i) => padL + (i / (snaps.length - 1)) * chartW;
+    const yOf = (v) => padTop + chartH - (v / yMax) * chartH;
+
+    // Filled area
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), yOf(0));
+    for (let i = 0; i < snaps.length; i++) ctx.lineTo(xOf(i), yOf(snaps[i].bal));
+    ctx.lineTo(xOf(snaps.length - 1), yOf(0));
+    ctx.closePath();
+
+    const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+    grad.addColorStop(0, 'rgba(34,197,94,0.30)');
+    grad.addColorStop(0.7, 'rgba(34,197,94,0.06)');
+    grad.addColorStop(1, 'rgba(34,197,94,0.01)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Stroke with per-segment color
+    for (let i = 1; i < snaps.length; i++) {
+      const ratio = snaps[i].bal / cap;
+      let color;
+      if (ratio > 0.95)      color = '#ef4444';
+      else if (ratio > 0.80) color = '#f59e0b';
+      else if (ratio < 0.10) color = '#ef4444';
+      else if (ratio < 0.25) color = '#f97316';
+      else                   color = '#22c55e';
+
+      ctx.beginPath();
+      ctx.moveTo(xOf(i - 1), yOf(snaps[i - 1].bal));
+      ctx.lineTo(xOf(i), yOf(snaps[i].bal));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Cap line (dashed)
+    ctx.beginPath();
+    ctx.setLineDash([4, 4]);
+    ctx.moveTo(padL, yOf(cap));
+    ctx.lineTo(padL + chartW, yOf(cap));
+    ctx.strokeStyle = 'rgba(245,158,11,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cap label
+    ctx.fillStyle = '#92620b';
+    ctx.font = '9px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('cap ' + cap, padL + chartW - 2, yOf(cap) - 3);
+
+    // Today marker
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayK = ds(today);
+    for (let i = 0; i < snaps.length; i++) {
+      if (ds(snaps[i].date) === todayK) {
+        const tx = xOf(i);
+        ctx.beginPath();
+        ctx.moveTo(tx, padTop);
+        ctx.lineTo(tx, padTop + chartH);
+        ctx.strokeStyle = 'rgba(245,158,11,0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(tx, yOf(snaps[i].bal), 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        break;
+      }
+    }
+
+    // Month labels
+    ctx.fillStyle = '#71717a';
+    ctx.font = '9px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    let lastMonth = -1;
+    const mn = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+    for (let i = 0; i < snaps.length; i++) {
+      const m = snaps[i].date.getMonth();
+      if (m !== lastMonth) { lastMonth = m; ctx.fillText(mn[m], xOf(i), H - 2); }
+    }
+
+    // Zero line
+    ctx.beginPath();
+    ctx.moveTo(padL, yOf(0));
+    ctx.lineTo(padL + chartW, yOf(0));
+    ctx.strokeStyle = 'rgba(113,113,122,0.3)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Store for resize/tooltip
+    canvas._projSnaps = snaps;
+    canvas._projCap = cap;
+  }
+
+  function initProjTooltips() {
+    $$('.proj-canvas').forEach(cv => {
+      const bank = cv.dataset.bank;
+      const tip = $(`#proj-tip-${bank}`);
+      if (!tip) return;
+
+      cv.addEventListener('mousemove', (e) => {
+        const rect = cv.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const snaps = cv._projSnaps;
+        if (!snaps || snaps.length === 0) return;
+
+        const idx = clamp(Math.round((x / rect.width) * (snaps.length - 1)), 0, snaps.length - 1);
+        const s = snaps[idx];
+
+        tip.textContent = `${sDate(s.date)}: ${s.bal.toFixed(1)} hrs`;
+        tip.style.left = Math.min(Math.max(x, 40), rect.width - 40) + 'px';
+        tip.classList.remove('hidden');
+      });
+
+      cv.addEventListener('mouseleave', () => tip.classList.add('hidden'));
     });
   }
 
@@ -816,14 +1024,21 @@ function parseDmls(raw) {
     });
 
     $('#add-planned-btn').addEventListener('click', addPlanned);
-    $('#cancel-planned-btn').addEventListener('click', () => $('#add-planned').classList.add('hidden'));
+    $('#cancel-planned-btn').addEventListener('click', () => { $('#add-planned').classList.add('hidden'); $('#plan-error').classList.add('hidden'); });
+    $('#planned-type').addEventListener('change', () => $('#plan-error').classList.add('hidden'));
+    $('#planned-hours').addEventListener('input', () => $('#plan-error').classList.add('hidden'));
 
     // Table filters
     $('#show-past').addEventListener('change', renderTable);
     $('#show-future').addEventListener('change', renderTable);
 
         // Resize
-    window.addEventListener('resize', () => requestAnimationFrame(drawCanvases));
+    window.addEventListener('resize', () => requestAnimationFrame(() => {
+      drawCanvases();
+      $$('.proj-canvas').forEach(cv => {
+        if (cv._projSnaps) drawProjection(cv, cv._projSnaps, cv._projCap);
+      });
+    }));
 
     // ── Import / Export FAB ──
     $('#fab-toggle').addEventListener('click', () => {
