@@ -822,8 +822,48 @@ function parseDmls(raw) {
     $('#show-past').addEventListener('change', renderTable);
     $('#show-future').addEventListener('change', renderTable);
 
-    // Resize
+        // Resize
     window.addEventListener('resize', () => requestAnimationFrame(drawCanvases));
+
+    // ── Import / Export FAB ──
+    $('#fab-toggle').addEventListener('click', () => {
+      $('#data-io-fab').classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!$('#data-io-fab').contains(e.target)) $('#data-io-fab').classList.remove('open');
+    });
+
+    $('#export-data-btn').addEventListener('click', () => {
+      const blob = new Blob([localStorage.getItem('cba-to') || '{}'], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `cba-timeoff-${ds(new Date())}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      $('#data-io-fab').classList.remove('open');
+    });
+
+    $('#import-data-btn').addEventListener('click', () => {
+      $('#import-file-input').click();
+      $('#data-io-fab').classList.remove('open');
+    });
+
+    $('#import-file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          JSON.parse(reader.result); // validate
+          localStorage.setItem('cba-to', reader.result);
+          location.reload();
+        } catch (_) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
 
     // Initial render
     renderCal();
