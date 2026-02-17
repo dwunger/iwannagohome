@@ -126,6 +126,29 @@ main {
   flex-direction: column;
   gap: 1.5rem;
 }
+@media (min-width: 1400px) {
+  main {
+    max-width: 1600px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: auto;
+    align-items: start;
+  }
+  main > .card:not(#meters-section):not(#sick-widget) {
+    grid-column: 1;
+  }
+  #meters-section {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  #sick-widget {
+    grid-column: 2;
+  }
+}
 
 /* ── CARD ── */
 .card {
@@ -569,6 +592,66 @@ tr:hover td { background: rgba(245, 158, 11, 0.03); }
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+/* ── DATA IMPORT/EXPORT BUTTON ── */
+.data-io-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+.data-io-fab .fab-toggle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--bg);
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 20px var(--amber-glow);
+  transition: transform 0.15s, background 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.data-io-fab .fab-toggle:hover {
+  background: #fbbf24;
+  transform: scale(1.08);
+}
+.data-io-fab .fab-menu {
+  display: none;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.data-io-fab.open .fab-menu { display: flex; }
+.data-io-fab .fab-menu button {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s;
+}
+.data-io-fab .fab-menu button:hover {
+  background: var(--border);
+  border-color: var(--amber-dim);
 }
 .meter-card {
   background: var(--bg-inset);
