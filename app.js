@@ -520,7 +520,7 @@ function parseDmls(raw) {
               `<option value="${t}" ${e.type === t ? 'selected' : ''}>${t}</option>`
             ).join('')}
           </select>
-          ${e.status === 'Planned' ? `<button class="btn-danger" data-id="${e.id}">DEL</button>` : ''}
+          <button class="btn-danger" data-id="${e.id}">DEL</button>
         </td>`;
       tb.appendChild(tr);
     }
