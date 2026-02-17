@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WellSpan Hates This 1 Simple Website</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Grain overlay -->
+  <div class="grain"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="header-rule"></div>
+      <h1>WellSpan Hates This<br><span class="accent">1 Simple Website</span></h1>
+      <p class="subtitle">CBA Time-Off Bank Health Calculator &bull; 8-Hour Shifts &bull; v1</p>
+      <div class="header-rule"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── EMPLOYEE INFO ── -->
+    <section id="input-section" class="card">
+      <div class="card-header">
+        <h2>Employee Info</h2>
+        <span class="card-tag">Step 1</span>
+      </div>
+      <div class="input-grid-3">
+        <div class="field">
+          <label for="hire-date">Hire Date <span class="src">(Oracle)</span></label>
+          <input type="date" id="hire-date">
+        </div>
+        <div class="field">
+          <label for="fte">FTE</label>
+          <select id="fte">
+            <option value="1.0">1.0 &mdash; Full-Time</option>
+            <option value="0.7">0.7</option>
+            <option value="0.5">0.5</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="unit">Unit</label>
+          <select id="unit">
+            <option value="2">Unit 2 &mdash; Technical</option>
+            <option value="1">Unit 1 &mdash; Professional</option>
+            <option value="3">Unit 3 &mdash; Service / Maint / Clerical</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="system-badge-wrap">
+        <div class="system-badge" id="system-badge">Enter hire date above</div>
+      </div>
+
+      <!-- System A -->
+      <div id="system-a-inputs" class="balance-block hidden">
+        <h3>Current Bank Balances <span class="src">(UKG)</span></h3>
+        <div class="input-grid-3">
+          <div class="field">
+            <label for="hpt-balance">HPT (hrs)</label>
+            <input type="number" id="hpt-balance" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="vac-balance">Vacation (hrs)</label>
+            <input type="number" id="vac-balance" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="sick-balance">Sick Leave (hrs)</label>
+            <input type="number" id="sick-balance" step="0.01" min="0" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+
+      <!-- System B -->
+      <div id="system-b-inputs" class="balance-block hidden">
+        <h3>Current Bank Balance <span class="src">(UKG)</span></h3>
+        <div class="input-grid-3">
+          <div class="field">
+            <label for="pto-balance">PTO (hrs)</label>
+            <input type="number" id="pto-balance" step="0.01" min="0" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+
+      <!-- Balance-as-of + rate -->
+      <div id="balance-date-row" class="hidden">
+        <div class="input-grid-3">
+          <div class="field">
+            <label for="balance-date">Balance as of</label>
+            <input type="date" id="balance-date">
+          </div>
+          <div class="field">
+            <label for="hourly-rate">Hourly Rate <span class="src">(optional, for $)</span></label>
+            <input type="number" id="hourly-rate" step="0.01" min="0" placeholder="e.g. 25.50">
+          </div>
+          <div class="field field-info" id="yos-display"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PASTE IMPORT ── -->
+    <section id="paste-section" class="card">
+      <div class="card-header">
+        <h2>Import History</h2>
+        <span class="card-tag">Step 2</span>
+      </div>
+      <p class="hint">Paste your dmls01 &ldquo;Time Off &amp; Downsizing&rdquo; report (Chambersburg Hospital Bargaining Unit).</p>
+      <textarea id="paste-area" rows="8" spellcheck="false" placeholder="Request ID 139748&#10;Request ID    Leave Type    Day ID    Time Off Date..."></textarea>
+      <div class="btn-row">
+        <button id="parse-btn" class="btn btn-primary">Parse</button>
+        <button id="clear-paste-btn" class="btn btn-ghost">Clear</button>
+        <span id="parse-status" class="status-msg"></span>
+      </div>
+    </section>
+
+    <!-- ── CALENDAR + TABLE ── -->
+    <section id="calendar-section" class="card">
+      <div class="card-header">
+        <h2>Time Off Schedule</h2>
+        <span class="card-tag">Step 3</span>
+      </div>
+      <div class="calendar-layout">
+        <!-- Calendar -->
+        <div class="calendar-panel">
+          <div class="cal-nav">
+            <button id="cal-prev" class="btn btn-icon">&lsaquo;</button>
+            <span id="cal-month-label" class="cal-title"></span>
+            <button id="cal-next" class="btn btn-icon">&rsaquo;</button>
+          </div>
+          <div id="calendar-grid" class="cal-grid"></div>
+
+          <!-- Add form -->
+          <div id="add-planned" class="planned-form hidden">
+            <h4 id="planned-date-label"></h4>
+            <div class="input-grid-2">
+              <div class="field">
+                <label for="planned-type">Type</label>
+                <select id="planned-type"></select>
+              </div>
+              <div class="field">
+                <label for="planned-hours">Hours</label>
+                <input type="number" id="planned-hours" value="8" step="0.5" min="0.5" max="24">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button id="add-planned-btn" class="btn btn-primary">Add Day</button>
+              <button id="cancel-planned-btn" class="btn btn-ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-panel">
+          <div class="table-filters">
+            <label class="chip"><input type="checkbox" id="show-past" checked> Past</label>
+            <label class="chip"><input type="checkbox" id="show-future" checked> Future</label>
+          </div>
+          <div class="table-scroll">
+            <table id="timeoff-table">
+              <thead>
+                <tr><th>Date</th><th>Type</th><th>Hrs</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="timeoff-tbody"></tbody>
+            </table>
+          </div>
+          <div id="table-summary" class="table-summary"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BANK HEALTH METERS ── -->
+    <section id="meters-section" class="card">
+      <div class="card-header">
+        <h2>Bank Health</h2>
+        <span class="card-tag">Live</span>
+      </div>
+      <p class="hint">Meters recalculate as you add or remove planned time off.</p>
+      <div id="meters-container"></div>
+    </section>
+
+    <!-- ── SICK WIDGET ── -->
+    <section id="sick-widget" class="card card-highlight hidden">
+      <div class="card-header">
+        <h2>Sick Leave Retirement Value</h2>
+      </div>
+      <div id="sick-widget-content" class="widget-grid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Approximation &amp; planning tool only. Does not replace official HR records.</p>
+    <p>All data stays in your browser. Nothing is sent anywhere.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
