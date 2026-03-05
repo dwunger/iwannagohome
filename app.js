@@ -129,12 +129,44 @@
     return { pct: '0%', label: 'Under 8' };
   }
 
+  /* ── ORACLE BALANCE PARSER ───────────────────────────────── */
+
+  function parseOracleBalances(raw) {
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const result = {};
+    const mapping = {
+      'holiday paid time': 'HPT',
+      'sick leave': 'SICK',
+      'vacation leave': 'VAC',
+      'pto': 'PTO',
+      'paid time off': 'PTO',
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const key = lines[i].toLowerCase();
+      for (const [pattern, bank] of Object.entries(mapping)) {
+        if (key.includes(pattern)) {
+          // Next line(s) should have the hours value
+          for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+            const m = lines[j].match(/([\d,]+\.?\d*)\s*hours?/i);
+            if (m) {
+              result[bank] = parseFloat(m[1].replace(/,/g, ''));
+              break;
+            }
+          }
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
   /* ── DMLS01 PARSER ───────────────────────────────────────── */
 function parseDmls(raw) {
     const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
     const out = [];
     const unk = new Set();
-    const known = ['VAC','HPT','PTO','SICK','OV'];
+    const known = ['VAC','HPT','PTO','SICK','OV','PL','SL','VL'];
 
     for (const ln of lines) {
       // Skip header lines and Request ID lines
@@ -185,8 +217,10 @@ function parseDmls(raw) {
       if (status === 'Denied') continue;
 
       let type = leaveRaw;
-      if (leaveRaw === 'OV') type = 'VAC';
-      if (!known.includes(leaveRaw)) unk.add(leaveRaw);
+      if (leaveRaw === 'OV' || leaveRaw === 'VL') type = 'VAC';
+      if (leaveRaw === 'PL') type = 'HPT';
+      if (leaveRaw === 'SL') type = 'SICK';
+      if (!['VAC','HPT','PTO','SICK'].includes(type)) unk.add(leaveRaw);
 
       out.push({ date, type, hours: hrs, status: 'Approved', id: uid() });
     }
@@ -375,7 +409,7 @@ function parseDmls(raw) {
       S.system = null; S.hireDate = null;
       $('#system-badge').textContent = 'Enter hire date above';
       $('#system-badge').className = 'system-badge';
-      hide('system-a-inputs'); hide('system-b-inputs'); hide('balance-date-row');
+      hide('system-a-inputs'); hide('system-b-inputs'); hide('balance-date-row'); hide('oracle-paste-row');
       return;
     }
     S.hireDate = pld(v);
@@ -393,6 +427,7 @@ function parseDmls(raw) {
       hide('system-a-inputs'); show('system-b-inputs');
     }
     show('balance-date-row');
+    show('oracle-paste-row');
     updYOS();
     updLeaveOpts();
     recalc();
@@ -1009,6 +1044,43 @@ function parseDmls(raw) {
     $('#clear-paste-btn').addEventListener('click', () => {
       $('#paste-area').value = '';
       $('#parse-status').textContent = '';
+    });
+
+    // Oracle balance paste
+    $('#oracle-parse-btn').addEventListener('click', () => {
+      const raw = $('#oracle-paste-area').value;
+      if (!raw.trim()) {
+        $('#oracle-parse-status').textContent = 'Nothing to parse.';
+        $('#oracle-parse-status').className = 'status-msg err';
+        return;
+      }
+      const balances = parseOracleBalances(raw);
+      const keys = Object.keys(balances);
+      if (keys.length === 0) {
+        $('#oracle-parse-status').textContent = 'No balances found. Check paste format.';
+        $('#oracle-parse-status').className = 'status-msg err';
+        return;
+      }
+      const filled = [];
+      for (const [bank, hrs] of Object.entries(balances)) {
+        S.bal[bank] = hrs;
+        if (bank === 'HPT' && $('#hpt-balance')) { $('#hpt-balance').value = hrs; filled.push('HPT'); }
+        if (bank === 'VAC' && $('#vac-balance')) { $('#vac-balance').value = hrs; filled.push('VAC'); }
+        if (bank === 'SICK' && $('#sick-balance')) { $('#sick-balance').value = hrs; filled.push('Sick'); }
+        if (bank === 'PTO' && $('#pto-balance')) { $('#pto-balance').value = hrs; filled.push('PTO'); }
+      }
+      if (!S.balDate) {
+        S.balDate = new Date(); S.balDate.setHours(0,0,0,0);
+        $('#balance-date').value = ds(S.balDate);
+      }
+      $('#oracle-parse-status').textContent = `Applied: ${filled.join(', ')} (${filled.length} bank${filled.length !== 1 ? 's' : ''})`;
+      $('#oracle-parse-status').className = 'status-msg';
+      recalc(); save();
+    });
+
+    $('#oracle-clear-btn').addEventListener('click', () => {
+      $('#oracle-paste-area').value = '';
+      $('#oracle-parse-status').textContent = '';
     });
 
     // Calendar

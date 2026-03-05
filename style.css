@@ -836,6 +836,18 @@ footer p + p { margin-top: 0.2rem; }
   line-height: 1.5;
 }
 
+/* ── EXTERNAL LINKS ── */
+.ext-link {
+  color: var(--amber);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--amber-dim);
+  transition: color 0.12s, border-color 0.12s;
+}
+.ext-link:hover {
+  color: #fbbf24;
+  border-bottom-color: #fbbf24;
+}
+
 /* ── UTILITY ── */
 .hidden { display: none !important; }
 
