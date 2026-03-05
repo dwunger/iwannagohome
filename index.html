@@ -101,10 +101,20 @@
         </div>
       </div>
 
+      <!-- Quick links -->
+      <div id="quick-links-row" class="hidden">
+        <h3>Data Sources</h3>
+        <div class="link-buttons">
+          <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/absences/plan-balances/view-summary?invokedFromLandingPage=true" target="_blank" rel="noopener" class="btn btn-link btn-link-oracle">Plan Balances <span class="btn-link-sub">Oracle &middot; HPT / Sick / Vacation hours</span></a>
+          <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/compensation-salary/mycompensation/mycompensation-main" target="_blank" rel="noopener" class="btn btn-link btn-link-oracle">My Compensation <span class="btn-link-sub">Oracle &middot; Hourly rate</span></a>
+          <a href="https://dmls01/timeoff/web/my-time-off-days-listing?approval_status=All&amp;leave_type=All&amp;timeoff_startdate_mgr_filter=&amp;timeoff_enddate_mgr_filter=&amp;items_per_page=All" target="_blank" rel="noopener" class="btn btn-link btn-link-dmls">Time Off Listing <span class="btn-link-sub">dmls01 &middot; Full request history</span></a>
+        </div>
+      </div>
+
       <!-- Oracle paste import -->
       <div id="oracle-paste-row" class="hidden">
         <h3>Quick Import Balances <span class="src">(Oracle)</span></h3>
-        <p class="hint">Paste text from the <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/absences/plan-balances/view-summary?invokedFromLandingPage=true" target="_blank" rel="noopener" class="ext-link">Plan Balances</a> page. Also check <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/compensation-salary/mycompensation/mycompensation-main" target="_blank" rel="noopener" class="ext-link">My Compensation</a> for your hourly rate.</p>
+        <p class="hint">Copy the balance summary from Plan Balances above and paste it here.</p>
         <textarea id="oracle-paste-area" rows="4" spellcheck="false" placeholder="Holiday Paid Time&#10;70.98 Hours&#10;Sick Leave&#10;300.25 Hours&#10;Vacation Leave&#10;102.222 Hours"></textarea>
         <div class="btn-row">
           <button id="oracle-parse-btn" class="btn btn-primary">Apply Balances</button>
@@ -120,7 +130,7 @@
         <h2>Import History</h2>
         <span class="card-tag">Step 2</span>
       </div>
-      <p class="hint">Paste from <a href="https://dmls01/timeoff/web/my-time-off-days-listing?approval_status=All&leave_type=All&timeoff_startdate_mgr_filter=&timeoff_enddate_mgr_filter=&items_per_page=All" target="_blank" rel="noopener" class="ext-link">dmls01 Time Off Listing</a> (select all rows, copy, paste below).</p>
+      <p class="hint">Open the Time Off Listing link above, select all rows, copy, and paste below.</p>
       <textarea id="paste-area" rows="8" spellcheck="false" placeholder="Request ID 139748&#10;Request ID    Leave Type    Day ID    Time Off Date..."></textarea>
       <div class="btn-row">
         <button id="parse-btn" class="btn btn-primary">Parse</button>

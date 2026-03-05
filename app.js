@@ -409,7 +409,7 @@ function parseDmls(raw) {
       S.system = null; S.hireDate = null;
       $('#system-badge').textContent = 'Enter hire date above';
       $('#system-badge').className = 'system-badge';
-      hide('system-a-inputs'); hide('system-b-inputs'); hide('balance-date-row'); hide('oracle-paste-row');
+      hide('system-a-inputs'); hide('system-b-inputs'); hide('balance-date-row'); hide('oracle-paste-row'); hide('quick-links-row');
       return;
     }
     S.hireDate = pld(v);
@@ -427,6 +427,7 @@ function parseDmls(raw) {
       hide('system-a-inputs'); show('system-b-inputs');
     }
     show('balance-date-row');
+    show('quick-links-row');
     show('oracle-paste-row');
     updYOS();
     updLeaveOpts();

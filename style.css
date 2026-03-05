@@ -836,16 +836,57 @@ footer p + p { margin-top: 0.2rem; }
   line-height: 1.5;
 }
 
-/* ── EXTERNAL LINKS ── */
-.ext-link {
-  color: var(--amber);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--amber-dim);
-  transition: color 0.12s, border-color 0.12s;
+/* ── LINK BUTTONS ── */
+.link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
 }
-.ext-link:hover {
-  color: #fbbf24;
-  border-bottom-color: #fbbf24;
+.btn-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  border: 1px solid;
+  flex: 1 1 180px;
+  min-width: 180px;
+}
+.btn-link:active { transform: scale(0.97); }
+.btn-link-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
+.btn-link-oracle {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+.btn-link-oracle:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: var(--amber);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.1);
+}
+.btn-link-dmls {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--blue-dim);
+  color: var(--blue);
+}
+.btn-link-dmls:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: var(--blue);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.1);
 }
 
 /* ── UTILITY ── */
