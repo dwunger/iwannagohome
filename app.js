@@ -168,6 +168,42 @@
     return result;
   }
 
+  /* ── ORACLE EMPLOYMENT PARSER ────────────────────────────── */
+
+  function parseEmployment(raw) {
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const result = { startDate: null, fte: null, unit: null };
+
+    for (let i = 0; i < lines.length; i++) {
+      const key = lines[i].toLowerCase();
+
+      // Start Date — next line has MM/DD/YYYY
+      if (key === 'start date') {
+        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+          const m = lines[j].match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          if (m) {
+            result.startDate = new Date(+m[3], +m[1] - 1, +m[2]);
+            break;
+          }
+        }
+      }
+
+      // FTE — next line has the number
+      if (key === 'fte') {
+        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+          const v = parseFloat(lines[j]);
+          if (!isNaN(v) && v > 0 && v <= 1) { result.fte = v; break; }
+        }
+      }
+
+      // Bargaining Unit — "Technical Unit" / "Professional" / "Service"
+      if (key.includes('technical unit')) result.unit = 2;
+      else if (key.includes('professional')) result.unit = 1;
+      else if (key.includes('service')) result.unit = 3;
+    }
+    return result;
+  }
+
   /* ── DMLS01 PARSER ───────────────────────────────────────── */
 function parseDmls(raw) {
     const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
@@ -1042,6 +1078,11 @@ function parseDmls(raw) {
         hint: 'Select all the text on the Time Off Listing page (Ctrl+A), copy (Ctrl+C), then paste below (Ctrl+V).',
         placeholder: 'Request ID 139748\nRequest ID    Leave Type    Day ID    Time Off Date...\n139748    VAC    496483    Thu, 03/07/2024    02/01/2024    Approved    8.00',
       },
+      employment: {
+        title: 'Import Employment Info',
+        hint: 'Select all the text on the Employment Info page (Ctrl+A), copy (Ctrl+C), then paste below (Ctrl+V).',
+        placeholder: 'Start Date\n12/27/2021\nFTE\n1\nTechnical Unit',
+      },
     };
     let modalType = null;
 
@@ -1123,6 +1164,34 @@ function parseDmls(raw) {
         $('#modal-status').textContent = msg;
         $('#modal-status').className = 'status-msg';
         renderCal(); renderTable(); recalc(); save();
+      }
+
+      if (modalType === 'employment') {
+        const data = parseEmployment(raw);
+        const filled = [];
+        if (data.startDate) {
+          S.hireDate = data.startDate;
+          $('#hire-date').value = ds(data.startDate);
+          filled.push('Start ' + sDate(data.startDate));
+        }
+        if (data.fte !== null) {
+          S.fte = data.fte;
+          $('#fte').value = String(data.fte);
+          filled.push('FTE ' + data.fte);
+        }
+        if (data.unit !== null) {
+          S.unit = data.unit;
+          $('#unit').value = String(data.unit);
+          filled.push('Unit ' + data.unit);
+        }
+        if (filled.length === 0) {
+          $('#modal-status').textContent = 'No data found. Make sure you copied the full page text.';
+          $('#modal-status').className = 'status-msg err';
+          return;
+        }
+        $('#modal-status').textContent = `Applied: ${filled.join(', ')}`;
+        $('#modal-status').className = 'status-msg';
+        updSystem(); save();
       }
     });
 
