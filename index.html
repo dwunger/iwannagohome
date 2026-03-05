@@ -101,41 +101,23 @@
         </div>
       </div>
 
-      <!-- Quick links -->
-      <div id="quick-links-row">
-        <h3>Data Sources</h3>
+      <!-- Import buttons -->
+      <div id="import-buttons-row">
+        <h3>Import Data</h3>
         <div class="link-buttons">
-          <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/absences/plan-balances/view-summary?invokedFromLandingPage=true" target="_blank" rel="noopener" class="btn btn-link btn-link-oracle">Plan Balances <span class="btn-link-sub">Oracle &middot; HPT / Sick / Vacation hours</span></a>
-          <a href="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/compensation-salary/mycompensation/mycompensation-main" target="_blank" rel="noopener" class="btn btn-link btn-link-oracle">My Compensation <span class="btn-link-sub">Oracle &middot; Hourly rate</span></a>
-          <a href="https://dmls01/timeoff/web/my-time-off-days-listing?approval_status=All&amp;leave_type=All&amp;timeoff_startdate_mgr_filter=&amp;timeoff_enddate_mgr_filter=&amp;items_per_page=All" target="_blank" rel="noopener" class="btn btn-link btn-link-dmls">Time Off Listing <span class="btn-link-sub">dmls01 &middot; Full request history</span></a>
+          <button class="btn btn-link btn-link-oracle" data-import="balances"
+            data-url="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/absences/plan-balances/view-summary?invokedFromLandingPage=true">
+            Plan Balances <span class="btn-link-sub">Oracle &middot; HPT / Sick / Vacation hours</span>
+          </button>
+          <button class="btn btn-link btn-link-oracle" data-import="compensation"
+            data-url="https://fa-evzu-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/redwood/compensation-salary/mycompensation/mycompensation-main">
+            My Compensation <span class="btn-link-sub">Oracle &middot; Hourly rate</span>
+          </button>
+          <button class="btn btn-link btn-link-dmls" data-import="timeoff"
+            data-url="https://dmls01/timeoff/web/my-time-off-days-listing?approval_status=All&amp;leave_type=All&amp;timeoff_startdate_mgr_filter=&amp;timeoff_enddate_mgr_filter=&amp;items_per_page=All">
+            Time Off Listing <span class="btn-link-sub">dmls01 &middot; Full request history</span>
+          </button>
         </div>
-      </div>
-
-      <!-- Oracle paste import -->
-      <div id="oracle-paste-row" class="hidden">
-        <h3>Quick Import Balances <span class="src">(Oracle)</span></h3>
-        <p class="hint">Copy the balance summary from Plan Balances above and paste it here.</p>
-        <textarea id="oracle-paste-area" rows="4" spellcheck="false" placeholder="Holiday Paid Time&#10;70.98 Hours&#10;Sick Leave&#10;300.25 Hours&#10;Vacation Leave&#10;102.222 Hours"></textarea>
-        <div class="btn-row">
-          <button id="oracle-parse-btn" class="btn btn-primary">Apply Balances</button>
-          <button id="oracle-clear-btn" class="btn btn-ghost">Clear</button>
-          <span id="oracle-parse-status" class="status-msg"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── PASTE IMPORT ── -->
-    <section id="paste-section" class="card">
-      <div class="card-header">
-        <h2>Import History</h2>
-        <span class="card-tag">Step 2</span>
-      </div>
-      <p class="hint">Open the Time Off Listing link above, select all rows, copy, and paste below.</p>
-      <textarea id="paste-area" rows="8" spellcheck="false" placeholder="Request ID 139748&#10;Request ID    Leave Type    Day ID    Time Off Date..."></textarea>
-      <div class="btn-row">
-        <button id="parse-btn" class="btn btn-primary">Parse</button>
-        <button id="clear-paste-btn" class="btn btn-ghost">Clear</button>
-        <span id="parse-status" class="status-msg"></span>
       </div>
     </section>
 
@@ -143,7 +125,7 @@
     <section id="calendar-section" class="card">
       <div class="card-header">
         <h2>Time Off Schedule</h2>
-        <span class="card-tag">Step 3</span>
+        <span class="card-tag">Step 2</span>
       </div>
       <div class="calendar-layout">
         <!-- Calendar -->
@@ -226,6 +208,22 @@
     </div>
     <button class="fab-toggle" id="fab-toggle" title="Import / Export Data">⇅</button>
     <input type="file" id="import-file-input" accept=".json" style="display:none">
+  </div>
+
+  <!-- ── IMPORT MODAL ── -->
+  <div id="import-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button id="modal-close" class="btn btn-icon">&times;</button>
+      </div>
+      <p id="modal-hint" class="hint"></p>
+      <textarea id="modal-paste" rows="10" spellcheck="false"></textarea>
+      <div class="btn-row">
+        <button id="modal-apply" class="btn btn-primary">Apply</button>
+        <span id="modal-status" class="status-msg"></span>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
